@@ -15,6 +15,9 @@ for($k = 0; $k < 5; $k++){
                 $totalitems = $nia[0] + $nia[1] + $nia[2] + $nia[3] + $nia[4] + $nia[5] + $nia[6] + $nia[7];  
         }
         $aSolutions[$k] = $aBoard;
+        for($a = 0; $a < 8; $a++){
+                unset($aBoard[$a]);
+        }
 }
 
         
