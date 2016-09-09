@@ -1,5 +1,7 @@
 from random import randint
-
+	
+	# functie om een random oplossing te creëren 
+	
 def createSolution():
 	totalitems = 0
 	failed = 0
@@ -39,6 +41,17 @@ def fitness_count(solutions):
 		total_colom_fitness[i] = sum(colom_fitness)
 
 # nu de diagonalen nog. Hier moet je volgens mij NumPy voor gebruiken.
-
+		
+		diagonal 1 = solutions[i][0][0]
+		diagonal 2 = solutions[i][1][0] + solutions[i][0][1]
+		diagonal 3 = solutions[i][2][0] + solutions[i][1][1] + solutions[i][0][2]
+		diagonal 4 = solutions[i][3][0] + solutions[i][2][1] + solutions[i][1][2] + solutions[i][0][3]
+		diagonal 5 = solutions[i][4][0] + solutions[i][3][1] + solutions[i][2][2] + solutions[i][1][3] + solutions[i][0][4]
+		
+		array_diagonals = []
+		
+			
+			
+		
 
 	
