@@ -8,8 +8,8 @@ def createSolution():
 	board = [["" for i in range(8)] for x in range(8)]
 	solutions = []
 	while totalitems - failed <= 8:
-		randX = randint(0,8)
-		randY = randint(0,8)
+		randX = randint(0,7)
+		randY = randint(0,7)
 		board[randY][randX] = "Q" if not board[randY][randX] == "Q" else failed += 1
 		totalitems += 1
 	return board
