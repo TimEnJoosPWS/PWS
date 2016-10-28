@@ -17,15 +17,10 @@ unions 	      2.00 	              01.00
 
 """
 from random import randint
-
-####################### PARAMETERS #######################
-
-population_size = 100
-
-##########################################################
+from inspect import isfunction
 
 """ 
-    <defining the items> 
+----------------------------- defining the items ------------------------------ 
 """
 
 class Item(object):
@@ -42,14 +37,23 @@ rope = Item(10.0, 5.0)
 sleeping_bag = Item(30.0, 7.0)
 unions = Item(2.0, 1.0)
 items = [beans, coffee, compass, pocketknife, potatoes, rope, sleeping_bag, unions]
+nr_of_items = len(items)
 
+""" 
+-------------------------- defining the parameters ---------------------------- 
+"""
+
+population_size = 100
+number_candidate_parents = 5 #See explanation of the select_parent_solutions function
+mutation_rate = 0.02
 
 """
-    <initiating population>
+---------------------------- initiating population ----------------------------
 """
 
 class PossibleSolution(object):
     def __init__(self, genotype):
+        assert len(genotype) is 8 and type(genotype) is str, "Invalid genotype"
         self.genotype = genotype
         
     def fitness_function(self):
@@ -77,14 +81,90 @@ class PossibleSolution(object):
 
 def create_random_genotype():
     # Create a string of random binary digits of length 8
-    random_genotype = "".join([str(randint(0,1)) for x in range(8)])
+    random_genotype = "".join([str(randint(0,1)) for x in range(nr_of_items)])
     return random_genotype
 
 population = [PossibleSolution(create_random_genotype()) for i in range(population_size)]
 fitnesses = [member.fitness_function() for member in population]
 
+"""
+--------------------- defining the procedure for reproduction -----------------
+"""
 
+def select_parent_solutions(population):
+    """
+     The parameter population is a list of instances of the class PossibleSolution.
+     This function should return a list of two PossibleSolution objects which 
+     have been selected to be a parent.
+     
+     This function takes a group of n random individuals and selects the two
+     best candidates.
+    """
+    assert type(population) is list and len(population) is population_size \
+            and all([type(n) is PossibleSolution for n in population]), \
+            "Invalid population"
+            
+    candidate_parents = [population[randint(0, number_candidate_parents)] for x in range(5)]
+    candidate_parents.sort()
+    return [candidate_parents[0], candidate_parents[1]]
 
+def n_points_crossover(parents, n):
+    """
+     This function should only be called by the crossover function.
+     It returns a PossibleSolution with a combination of the parental genotypes.
+    """
+    assert n < len(items) and n >= 0 and len(parents) is 2, "invalid amount of crossover points"
+    
+    crossover_points = [randint(1, len(items) - 1) for x in range(n)]
+    while len(set(crossover_points)) != len(crossover_points):
+        # To make sure that there are n crossoverpoints
+        crossover_points = [randint(1, len(items) - 1) for x in range(n)]
+    crossover_points.sort()
+    
+    current_gene_donor = randint(0, 1)
+    new_genotype = ""
+    for i in range(len(items)):
+        new_genotype += parents[current_gene_donor].genotype[i]
+        if i + 1 in crossover_points:
+            current_gene_donor = not current_gene_donor
+    
+    return PossibleSolution(new_genotype)
+    
+def universal_crossover(parents, n):
+    """
+     This function should only be called by the crossover function.
+     It returns a PossibleSolution with a random combination of the parental genotypes.
+    """    
+    assert len(parents) is 2, "Invalid amount of parents"
+    new_genotype = ""
+    for i in range(len(items)):
+        current_gene_donor = randint(0, 1)
+        new_genotype += parents[current_gene_donor].genotype[i]
+        
+    return PossibleSolution(new_genotype)
+    
+def crossover(parent_0, parent_1, crossover_type, nr_crossover_points=0):
+    """
+     Parent_0 and parent_1 are the instances of PossibleSolution which have been
+     selected for reproduction.
+    """
+    assert type(parent_0) is PossibleSolution and type(parent_1) is PossibleSolution \
+          and isfunction(crossover_type), "invalid type of the two parents"
+    
+    return crossover_type([parent_0, parent_1], nr_crossover_points)
+    
+def mutation(individual):
+    """
+     Flips a bit in the genotype with a chance of mutation_rate
+    """    
+    assert type(individual) is PossibleSolution, "individual must be PossibleSolution"
+    genotype = list(individual.genotype)
+    
+    for i in range(nr_of_items):
+        if randint(0,100)/100 < mutation_rate:
+            genotype[i] = str(int(not bin(genotype[i])))
+    individual.genotype = "".join(genotype)
+    return individual
 
 
 
