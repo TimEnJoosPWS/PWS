@@ -1,6 +1,6 @@
 """
 
-Knapsack problem
+Knapsack problem by Joos and Tim
 
 ITEM	        survivalpoints 	  weight (kg)
 
@@ -29,31 +29,39 @@ class Item(object):
         self.value = value
 
 beans = Item(20.0, 5.0)
+book = Item(4.0, 6.0)
 coffee = Item(5.0, 4.0)
 compass = Item(30.0, 1.0)
+dictionary = Item(1.0, 8.0)
 pocketknife = Item(10.0, 1.0)
 potatoes = Item(15.0, 10.0)
 rope = Item(10.0, 5.0)
 sleeping_bag = Item(30.0, 7.0)
 unions = Item(2.0, 1.0)
-items = [beans, coffee, compass, pocketknife, potatoes, rope, sleeping_bag, unions]
+items = [beans, book, coffee, compass, dictionary, pocketknife, potatoes, rope, sleeping_bag, unions]
 nr_of_items = len(items)
+
 
 """ 
 -------------------------- defining the parameters ---------------------------- 
 """
 
+
 population_size = 100
+number_of_generations = 100
 number_candidate_parents = 5 #See explanation of the select_parent_solutions function
-mutation_rate = 0.02
+mutation_rate = 0.02 #Chance of a bit in the genotype getting flipped 
+elite_selection = 5 # Size of the elitist selection
+
 
 """
 ---------------------------- initiating population ----------------------------
 """
 
+
 class PossibleSolution(object):
     def __init__(self, genotype):
-        assert len(genotype) is 8 and type(genotype) is str, "Invalid genotype"
+        assert len(genotype) is len(items) and type(genotype) is str, "Invalid genotype"
         self.genotype = genotype
         
     def fitness_function(self):
@@ -80,16 +88,16 @@ class PossibleSolution(object):
         return (self.fitness)
 
 def create_random_genotype():
-    # Create a string of random binary digits of length 8
+    # Create a string of random binary digits of length nr_of_items
     random_genotype = "".join([str(randint(0,1)) for x in range(nr_of_items)])
     return random_genotype
 
-population = [PossibleSolution(create_random_genotype()) for i in range(population_size)]
-fitnesses = [member.fitness_function() for member in population]
+
 
 """
 --------------------- defining the procedure for reproduction -----------------
 """
+
 
 def select_parent_solutions(population):
     """
@@ -105,12 +113,12 @@ def select_parent_solutions(population):
             "Invalid population"
             
     candidate_parents = [population[randint(0, number_candidate_parents)] for x in range(5)]
-    candidate_parents.sort()
+    sorted(candidate_parents, key=lambda solution: solution.fitness)[::-1]
     return [candidate_parents[0], candidate_parents[1]]
 
 def n_points_crossover(parents, n):
     """
-     This function should only be called by the crossover function.
+     This function should only be called by the crossover function. 
      It returns a PossibleSolution with a combination of the parental genotypes.
     """
     assert n < len(items) and n >= 0 and len(parents) is 2, "invalid amount of crossover points"
@@ -147,10 +155,13 @@ def crossover(parent_0, parent_1, crossover_type, nr_crossover_points=0):
     """
      Parent_0 and parent_1 are the instances of PossibleSolution which have been
      selected for reproduction.
+     There are two functions with two seperate ways of performing crossover
+     (universal_crossover and n_points_crossover).
+     
     """
     assert type(parent_0) is PossibleSolution and type(parent_1) is PossibleSolution \
           and isfunction(crossover_type), "invalid type of the two parents"
-    
+
     return crossover_type([parent_0, parent_1], nr_crossover_points)
     
 def mutation(individual):
@@ -162,16 +173,43 @@ def mutation(individual):
     
     for i in range(nr_of_items):
         if randint(0,100)/100 < mutation_rate:
-            genotype[i] = str(int(not bin(genotype[i])))
+            genotype[i] = str(int(not bool(genotype[i])))
     individual.genotype = "".join(genotype)
     return individual
 
+def elite(population):
+    """
+     Returns the elite of the population.
+    """
+    if elite_selection is 0:
+        return []
+    
+    sorted_population = sorted(population, key=lambda solution: solution.fitness)
+    return sorted_population[-elite_selection:]
 
 
+"""
+--------------------------------- The real magic ------------------------------
+"""
 
+population = [PossibleSolution(create_random_genotype()) for i in range(population_size)]
+fitnesses = [member.fitness_function() for member in population]
 
-
-
+for generation in range(number_of_generations):
+    
+    new_population = []
+    new_population.extend(elite(population)) #Adds the elite of the previous generation to the current
+    
+    for i in range(population_size - elite_selection):
+        parents = select_parent_solutions(population) #Select parents
+        new_individual = crossover(parents[0], parents[1], n_points_crossover, 1) #Combine their genes
+        new_individual = mutation(new_individual) # Mutate (small chance, though)
+        new_population.append(new_individual) 
+   
+    population = new_population
+    fitnesses = [member.fitness_function() for member in population]
+    print(sum(fitnesses)/float(len(fitnesses)), max(fitnesses)) # Print average fitness and the highest fitness to the screen 
+   
 
 
 
