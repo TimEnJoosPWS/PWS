@@ -18,7 +18,7 @@ unions 	      2.00 	              01.00
 """
 from random import randint
 from inspect import isfunction
-
+import GraphImport
 """ 
 ----------------------------- defining the items ------------------------------ 
 """
@@ -192,10 +192,15 @@ def elite(population):
 --------------------------------- The real magic ------------------------------
 """
 
+graph_data = []
 population = [PossibleSolution(create_random_genotype()) for i in range(population_size)]
 fitnesses = [member.fitness_function() for member in population]
 
+
+
 for generation in range(number_of_generations):
+    
+    graph_data.append([generation, sum(fitnesses)/float(len(fitnesses))])    
     
     new_population = []
     new_population.extend(elite(population)) #Adds the elite of the previous generation to the current
@@ -208,12 +213,12 @@ for generation in range(number_of_generations):
    
     population = new_population
     fitnesses = [member.fitness_function() for member in population]
-    print(sum(fitnesses)/float(len(fitnesses)), max(fitnesses)) # Print average fitness and the highest fitness to the screen 
+    
    
 
 
-
-
+argv = ['', '-i', graph_data, '-o', "average.jpg", '-x', [0, population_size], '-y', [0,105], '--xti', 5, '--yti', 5] 
+GraphImport.main(argv)
 
 
 
