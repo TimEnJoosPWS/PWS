@@ -5,8 +5,10 @@ Knapsack problem by Joos and Tim
 ITEM	        survivalpoints 	  weight (kg)
 
 beans 	      20.00 	        05.00
+book              4.00               06.00
 coffee            5.00               04.00 
 compass 	      30.00 	        01.00
+dictionary       1.00                08.00
 pocketknife 	10.00 	        01.00
 potatoes 	      15.00 	        10.00
 rope        	10.00 	        05.00
@@ -18,7 +20,8 @@ unions 	      2.00 	              01.00
 """
 from random import randint
 from inspect import isfunction
-import GraphImport
+import sqlite3
+
 """ 
 ----------------------------- defining the items ------------------------------ 
 """
@@ -49,20 +52,40 @@ nr_of_items = len(items)
 
 population_size = 100
 number_of_generations = 100
-number_candidate_parents = 5 #See explanation of the select_parent_solutions function
+number_candidate_parents = 4 #See explanation of the select_parent_solutions function
 mutation_rate = 0.02 #Chance of a bit in the genotype getting flipped 
 elite_selection = 5 # Size of the elitist selection
+crossover_type = "universal_crossover"
+crossover_points = 0
 
+"""
+-------------------------- connecting to the database -------------------------
+"""
+
+connection = sqlite3.connect('knapsack_data_2.0.db')
+
+connection.execute("INSERT INTO knapsack_parameters \
+                    (run_id, population_size, number_of_generations, mutation_rate, elite_selection, crossover_type, crossover_points)\
+                    VALUES ((SELECT COUNT(*) FROM knapsack_parameters),%d, %d, %f, %d,'%s', %d)"%\
+                    (population_size, number_of_generations, mutation_rate, elite_selection, crossover_type, crossover_points))
 
 """
 ---------------------------- initiating population ----------------------------
 """
 
+for db_length in connection.execute("SELECT COUNT(*) FROM knapsack"):
+    last_id = db_length[0]
 
 class PossibleSolution(object):
-    def __init__(self, genotype):
+    def __init__(self, genotype, generation):
         assert len(genotype) is len(items) and type(genotype) is str, "Invalid genotype"
         self.genotype = genotype
+        self.generation = generation
+        
+        global last_id
+        self.id = last_id + 1
+        last_id += 1
+        
         
     def fitness_function(self):
         """    
@@ -116,7 +139,7 @@ def select_parent_solutions(population):
     sorted(candidate_parents, key=lambda solution: solution.fitness)[::-1]
     return [candidate_parents[0], candidate_parents[1]]
 
-def n_points_crossover(parents, n):
+def n_points_crossover(parents, n, generation):
     """
      This function should only be called by the crossover function. 
      It returns a PossibleSolution with a combination of the parental genotypes.
@@ -136,9 +159,16 @@ def n_points_crossover(parents, n):
         if i + 1 in crossover_points:
             current_gene_donor = not current_gene_donor
     
-    return PossibleSolution(new_genotype)
+    new_individual =  PossibleSolution(new_genotype, generation)
+    connection.execute("INSERT INTO knapsack(id, genotype, run, fitness, parent_0, parent_1, generation) VALUES\
+                        (%d, %s, (SELECT COUNT(*) FROM knapsack_parameters), %f, %d, %d, %d)"%\
+                        (new_individual.id, new_individual.genotype, new_individual.fitness_function(),\
+                        parents[0].id, parents[1].id, generation)) 
     
-def universal_crossover(parents, n):
+    
+    return new_individual
+    
+def universal_crossover(parents, generation):
     """
      This function should only be called by the crossover function.
      It returns a PossibleSolution with a random combination of the parental genotypes.
@@ -148,10 +178,16 @@ def universal_crossover(parents, n):
     for i in range(len(items)):
         current_gene_donor = randint(0, 1)
         new_genotype += parents[current_gene_donor].genotype[i]
-        
-    return PossibleSolution(new_genotype)
+   
+    new_individual =  PossibleSolution(new_genotype, generation)
+    connection.execute("INSERT INTO knapsack(id, genotype, run, fitness, parent_0, parent_1, generation) VALUES\
+                        (%d, %s, (SELECT COUNT(*) FROM knapsack_parameters), %f, %d, %d, %d)"%\
+                        (new_individual.id, new_individual.genotype, new_individual.fitness_function(),\
+                        parents[0].id, parents[1].id, generation)) 
     
-def crossover(parent_0, parent_1, crossover_type, nr_crossover_points=0):
+    return new_individual
+    
+def crossover(parent_0, parent_1, generation):
     """
      Parent_0 and parent_1 are the instances of PossibleSolution which have been
      selected for reproduction.
@@ -159,10 +195,18 @@ def crossover(parent_0, parent_1, crossover_type, nr_crossover_points=0):
      (universal_crossover and n_points_crossover).
      
     """
-    assert type(parent_0) is PossibleSolution and type(parent_1) is PossibleSolution \
-          and isfunction(crossover_type), "invalid type of the two parents"
-
-    return crossover_type([parent_0, parent_1], nr_crossover_points)
+    assert type(parent_0) is PossibleSolution and type(parent_1) is PossibleSolution, \
+           "invalid type of the two parents"
+    assert crossover_type is "universal_crossover"\
+            or crossover_type is "n_points_crossover",\
+            "Invalid crossover type"
+            
+    if crossover_type is "universal_crossover":
+        return universal_crossover([parent_0, parent_1], generation)
+    else:
+        return n_points_crossover([parent_0, parent_1], crossover_points, generation)
+    
+    
     
 def mutation(individual):
     """
@@ -192,33 +236,38 @@ def elite(population):
 --------------------------------- The real magic ------------------------------
 """
 
-graph_data = []
-population = [PossibleSolution(create_random_genotype()) for i in range(population_size)]
+
+population = [PossibleSolution(create_random_genotype(), 0) for i in range(population_size)]
 fitnesses = [member.fitness_function() for member in population]
 
+for individual in population:
+    query = "INSERT INTO knapsack (id, genotype, run, fitness, generation)\
+            VALUES \
+            (%d, %s, (SELECT COUNT(*) FROM knapsack_parameters), %f, %d)"%\
+            (individual.id, individual.genotype, individual.fitness, 0 )
+    connection.execute(query)
 
-
-for generation in range(number_of_generations):
+for generation in range(1, number_of_generations):
     
-    graph_data.append([generation, sum(fitnesses)/float(len(fitnesses))])    
+   
     
     new_population = []
     new_population.extend(elite(population)) #Adds the elite of the previous generation to the current
     
     for i in range(population_size - elite_selection):
         parents = select_parent_solutions(population) #Select parents
-        new_individual = crossover(parents[0], parents[1], n_points_crossover, 1) #Combine their genes
+        new_individual = crossover(parents[0], parents[1], generation) #Combine their genes
         new_individual = mutation(new_individual) # Mutate (small chance, though)
         new_population.append(new_individual) 
    
     population = new_population
-    fitnesses = [member.fitness_function() for member in population]
-    
+
+
+connection.commit()
+connection.close()
    
 
 
-argv = ['', '-i', graph_data, '-o', "average.jpg", '-x', [0, population_size], '-y', [0,105], '--xti', 5, '--yti', 5] 
-GraphImport.main(argv)
 
 
 
