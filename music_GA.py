@@ -71,13 +71,12 @@ stable_notes = {"Am": ["1", "3", "6", "8", "A", "D"],
                 "Em": ["3", "5", "7", "A", "C", "E"],
                 "Dm": ["2", "4", "6", "9", "B", "D"]}
                 
-instable_notes = {"Am": [x for x in notes if not x in stable_notes["Am"]],
-                  "C": [x for x in notes if x not in stable_notes["C"]],
-                  "F": [x for x in notes if x not in stable_notes["F"]],
-                  "G": [x for x in notes if x not in stable_notes["G"]],
-                  "Em": [x for x in notes if x not in stable_notes["Em"]],
-                  "Dm": [x for x in notes if x not in stable_notes["Dm"]]}
-
+instable_notes = {"Am": ["7", "9", "B", "C", "E", "2", "4", "5"],
+                  "C": ["2", "4", "6", "7", "9", "B", "D", "E"],
+                  "F": ["5", "7", "9", "A", "C", "E", "2", "3"],
+                  "G": ["6", "8", "A", "B", "D", "1", "3", "4"],
+                  "Em": ["4", "6", "8", "9", "B", "D", "1", "2"],
+                  "Dm": ["3", "5", "7", "8", "A", "C", "E", "1"]}
 
 def fitness_stable_unstable_notes(chromosome, chord):
     assert type(chord) is str and type(chromosome) is str, "invalid input"
