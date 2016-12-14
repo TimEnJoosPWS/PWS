@@ -4,7 +4,7 @@
 import sqlite3
 import xlsxwriter
 
-conn = sqlite3.connect('knapsack_data_2.0.db')
+conn = sqlite3.connect('knapsack_data_3.0.db')
 
 """
 
@@ -126,7 +126,7 @@ for data_row in data:
 
     #worksheet.write(row, 1, data_row[0])
     row += 1
-"""
+
 outfile = open("crossover_data.txt", "a+")
 
 data = conn.execute("SELECT kp.crossover_type, kp.crossover_points, ks.run,  AVG(ks.fitness/(MAX(ks1.fitness/1.0, ks2.fitness/1.0))) FROM knapsack AS ks \
@@ -141,4 +141,22 @@ for line in data:
     outfile.write(str(line) + "\n")
 
 outfile.close()
+stuff = conn.execute("DELETE FROM knapsack_parameters")
+stuff = conn.execute("VACUUM")
+stuff = conn.execute("DELETE FROM knapsack")
+stuff = conn.execute("VACUUM")
+
+
+import knapsack
+data = conn.execute("SELECT COUNT(*) FROM knapsack_parameters")
+for i in data:
+    print(i[0])
+
+
+
+"""
+
+
+
+
 conn.close()
