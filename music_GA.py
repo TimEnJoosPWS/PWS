@@ -13,19 +13,20 @@ crossover_points = 2
 nr_chromosomes = 8
 length_chromosome = 8
 
-verhouding_stabiel_instabiel = 1  # a
-straf_te_willekeurig = 2  # S
-straf_te_saai = -2  # p
+a = 1  # a
+S = 2  # S
+P = -2  # p
+bonus_T_zero = 15
 
-bonus_correcte_opvolging = 2  # R
-straf_incorrecte_opvolging = 2  # q
+R = 2  # R
+q = 2  # q
 
 b = 2
 Q = 2
 V = -2
 
-straf_tritonus = 2  # V
-straf_sext = 3  # W
+V = 3  # V
+W = 2  # W
 straf_septime = 5 # X
 
 
@@ -62,15 +63,45 @@ def create_random_genotype():
 
 """------------------------- Fitness ---------------------------------------"""
 
+notes = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", 'D', 'E', 'F']
+stable_notes = {"Am": ["1", "3", "6", "8", "A", "D"],
+                "C": ["1", "3", "5", "8", "A", "C"],
+                "F": ["1", "4", "6", "8", "B", "D"],
+                "G": ["2", "5", "7", "9", "C", "E"],
+                "Em": ["3", "5", "7", "A", "C", "E"],
+                "Dm": ["2", "4", "6", "9", "B", "D"]}
+                
+instable_notes = {"Am": [x for x in notes if not x in stable_notes["Am"]],
+                  "C": [x for x in notes if x not in stable_notes["C"]],
+                  "F": [x for x in notes if x not in stable_notes["F"]],
+                  "G": [x for x in notes if x not in stable_notes["G"]],
+                  "Em": [x for x in notes if x not in stable_notes["Em"]],
+                  "Dm": [x for x in notes if x not in stable_notes["Dm"]]}
 
-def nr_instable_notes(chromosome, chord):
-    pass
 
+def fitness_stable_unstable_notes(chromosome, chord):
+    assert type(chord) is str and type(chromosome) is str, "invalid input"
+    
+    stable, unstable, fitness = 0, 0, 0
+    
+    for i in chromosome:
+        if i in stable_notes[chord]:
+            stable += 1
+        elif i in instable_notes[chord]:
+            unstable += 1
+    
+    T = stable - a * unstable
+    
+    if T > 0:
+        fitness -= S * T
+    elif T < 0:
+        fitness -= P * S * T
+    else:
+        fitness += bonus_T_zero
+    return fitness
 
-def fitness_stable_instable_notes():
-    pass
-
-
+print(fitness_stable_unstable_notes("357A1246", "Dm"))
+    
 def fitness_steps():
     pass
 
@@ -131,12 +162,45 @@ def crossover(parents, generation):
     for i in range(length_chromosome*nr_chromosomes):
         if i in index_crossover_points:
             current_gene_donor = not current_gene_donor
-        if i % length_chromosome:
+        if i % length_chromosome is 0 and i is not 0:
             new_genotype.append(new_chromosome)
             new_chromosome = ""
         
-        new_chromosome += str("".join(parents[current_gene_donor].genotype)[i])
+        new_chromosome += "".join(parents[current_gene_donor].genotype)[i]
+    new_genotype.append(new_chromosome)
     
-    print(new_genotype)
+    return Melody(new_genotype, generation)
 
-crossover([Melody(create_random_genotype(), 0), Melody(create_random_genotype(), 0)], 0)
+def mutation(individual):
+    """
+        Changes a note to a random note with a chance of mutation_rate
+    """
+    assert type(individual) is Melody, "invalid individual"
+
+    genotype = individual.genotype
+    chromosome_nr = 0
+    for chromosome in genotype:
+        chromosome = list(chromosome)
+        
+        for i in range(length_chromosome):
+            if randint(0, 100)/100 < mutation_rate:
+                chromosome[i] = str(hex(randint(0, 15)))[2::].upper()
+
+        chromosome = "".join(chromosome)
+        genotype[chromosome_nr] = chromosome
+        chromosome_nr += 1
+    individual.genotype = genotype
+    return individual
+
+
+def elite(population):
+    """
+     Returns the elite of the population.
+    """
+    assert all([type(x) is Melody for x in population])
+    if elite_selection is 0:
+        return []
+    
+    sorted_population = sorted(population, key=lambda solution: solution.fitness)
+    return sorted_population[-elite_selection:]
+
