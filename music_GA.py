@@ -35,7 +35,7 @@ straf_septime = 5 # X
 
 class Melody(object):
     def __init__(self, genotype, generation):
-        #Initiates the Melody, takes a.o. a list of chromosomes as input. 
+        #Initiates the Melody, takes a list of chromosomes as input. 
 
         assert type(generation) is int \
                 and type(genotype) is list \
@@ -64,10 +64,10 @@ def create_random_genotype():
 """------------------------- Fitness ---------------------------------------"""
 
 notes = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", 'D', 'E', 'F']
-stable_notes = {"Am": ["1", "3", "6", "8", "A", "D"],
+stable_notes = {"Am": ["6", "8", "A", "D","1", "3"],
                 "C": ["1", "3", "5", "8", "A", "C"],
-                "F": ["1", "4", "6", "8", "B", "D"],
-                "G": ["2", "5", "7", "9", "C", "E"],
+                "F": [ "4", "6", "8", "B", "D", "1"],
+                "G": ["5", "7", "9", "C", "E", "2"],
                 "Em": ["3", "5", "7", "A", "C", "E"],
                 "Dm": ["2", "4", "6", "9", "B", "D"]}
                 
@@ -99,8 +99,48 @@ def fitness_stable_unstable_notes(chromosome, chord):
         fitness += bonus_T_zero
     return fitness
 
-print(fitness_stable_unstable_notes("357A1246", "Dm"))
     
+def next_tone(chromosome, current_index):
+    assert type(chromosome) is str and len(chromosome) is length_chromosome\
+        and current_index < length_chromosome,\
+        "invalid chromosome"
+    i = current_index + 1
+    while re.search(r"[F0]", chromosome[i:i+1:]) is not None and i < length_chromosome:
+        i += 1
+    if i is 8:
+        return "error"
+    else:
+        return chromosome[i]
+
+def fitness_note_after_instable_tone(chord, chromosome):
+    
+    fitness = 0
+    for i in range(len(chromosome)):
+        if chromosome[i] in instable_notes[chord]:
+            interval = instable_notes[chord].index(chromosome[i])
+            if interval in [0, 4]: #secunde
+                if next_tone(chromosome, i) not in [stable_notes[chord][0],
+                                                    stable_notes[chord][1],
+                                                    stable_notes[chord][3],
+                                                    stable_notes[chord][4]]:
+                    fitness -= 10  # Change!!!!!!!!!!!!!!
+            elif interval in [1, 5]:  # kwart
+                if next_tone(chromosome, i) not in [stable_notes[chord][1],
+                                                    stable_notes[chord][4]]:
+                     fitness -= 10  # Change!!!!!!!!!!!!!!
+            elif interval in [2, 6]:  # sext
+                if next_tone(chromosome, i) not in [stable_notes[chord][2],
+                                                    stable_notes[chord][5]]:
+                    fitness -= 10  # Change!!!!!!!!!!!!!!
+            elif interval in [3, 7]:  # septiem
+                if next_tone(chromosome, i) not in [stable_notes[chord][0],
+                                                    stable_notes[chord][3]]:
+                    fitness -= 10  # Change!!!!!!!!!!!!!!
+    
+    return fitness
+
+
+
 def fitness_steps():
     pass
 
@@ -133,7 +173,7 @@ def select_parents(population):
         and all([type(n) is Melody for n in population]), \
         "Invalid population"
 
-    candidate_parents = [population[randint(0, len(population) - 1)] for x in range(number_candidate_parents)]
+    candidate_parents = [population[randint(0, len(population) - 1)] for x in range(number_of_candidate_solutions)]
     sorted(candidate_parents, key=lambda solution: solution.fitness)[::-1]
     return [candidate_parents[0], candidate_parents[1]]
 
