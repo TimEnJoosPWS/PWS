@@ -9,17 +9,20 @@ number_of_candidate_solutions = 4
 elite_selection = 5
 crossover_type = "n_points_crossover"
 crossover_points = 2
+number_of_generations = 100
 
 nr_chromosomes = 8
 length_chromosome = 8
 
 chords = ["C", "Am", "F", "G", "Em", "Am", "Dm", "G"]
 
-proportion_stable_unstable = 10 # T, ideal amount of unstable notes is proportion_stable_unstable times as much as amount of stable notes
+proportion_stable_unstable = 1 # T, ideal amount of unstable notes is proportion_stable_unstable times as much as amount of stable notes
 a = 1  # a
-punish_unstable = 2  # S, the punishment for the excess of instable notes
-punish_stable = -2  # p, the punishment for the excess of stable notes
+punish_unstable = -2  # S, the punishment for the excess of instable notes
+punish_stable = 2  # p, the punishment for the excess of stable notes
 bonus_T_zero = 15 # the bonus when the proportion between stable and unstables notes is ideal
+
+punishment_rest = 4
 
 R = 2  # R
 q = 2  # q
@@ -34,6 +37,33 @@ straf_septime = 5 # X
 
 
 """---------------------- defining representation --------------------------"""
+note_representation = {
+                       "0": "-",  # rust
+                       "1": "C",
+                       "2": "D",
+                       "3": "E",
+                       "4": "F",
+                       "5": "G",
+                       "6": "A",
+                       "7": "B",
+                       "8": "C",
+                       "9": "D",
+                       "A": "E",
+                       "B": "F",
+                       "C": "G",
+                       "D": "A",
+                       "E": "B",
+                       "F": "."  # aanhouden van de noot
+                       }
+
+def genotype_to_fenotype(genotype):
+    fenotype = []
+    for chromosome in genotype:
+        fenotype_of_chromosome = ""
+        for note in chromosome:
+            fenotype_of_chromosome += note_representation[note]
+        fenotype.append(fenotype_of_chromosome)
+    return fenotype
 
 
 class Melody(object):
@@ -62,6 +92,7 @@ def create_random_genotype():
         for gene_nr in range(length_chromosome):
             chromosome += str(hex(randint(0, 15)))[2::].upper()
         genotype.append(chromosome)
+
     return genotype
 
 """------------------------- Fitness ---------------------------------------"""
@@ -102,7 +133,7 @@ def fitness_stable_unstable_notes(chromosome, chord):
         fitness += bonus_T_zero
     return fitness
 
-    
+
 def next_tone(chromosome, current_index):
     assert type(chromosome) is str and len(chromosome) is length_chromosome\
         and current_index < length_chromosome,\
@@ -114,6 +145,16 @@ def next_tone(chromosome, current_index):
         return "error"
     else:
         return chromosome[i]
+
+
+def fitness_note_length(chromosome):
+    rest = chromosome.count("F") + chromosome.count("0")
+    if rest < 3:
+        rest = 8 - rest
+    if rest >= 3 and rest < 6:
+        rest = - rest
+    return - (rest * punishment_rest)
+
 
 def fitness_note_after_instable_tone(chord, chromosome):
     
@@ -142,15 +183,6 @@ def fitness_note_after_instable_tone(chord, chromosome):
     return fitness
 
 
-
-def fitness_steps():
-    pass
-
-
-def fitness_note_length():
-    pass
-
-
 def fitness(individual):
     """
         Returns the fitness of the given individual.
@@ -165,9 +197,11 @@ def fitness(individual):
         individual.fitness += fitness_stable_unstable_notes\
                                     (individual.genotype[chromosome_index],
                                      chords[chromosome_index])
+        individual.fitness += fitness_note_length(individual.genotype[chromosome_index])
+        
     return individual.fitness
 
-print(fitness())
+
 """------------------------ Reproduction -----------------------------------"""
 
 def select_parents(population):
@@ -253,3 +287,23 @@ def elite(population):
     sorted_population = sorted(population, key=lambda solution: solution.fitness)
     return sorted_population[-elite_selection:]
 
+"""
+--------------------------------- The real magic ------------------------------
+"""
+
+population = [Melody(create_random_genotype(), 0) for i in range(population_size)]
+for generation in range(1, number_of_generations):
+    new_population = []
+    new_population.extend(elite(population))
+    
+    for i in range(population_size - elite_selection):
+        parents = select_parents(population)
+        new_individual = crossover(parents, generation)
+        fitness(new_individual)
+        new_individual = mutation(new_individual)
+        new_population.append(new_individual)
+    population = new_population
+
+fitnesses = [individual.fitness for individual in population]
+test = population[0]
+print(genotype_to_fenotype(test.genotype), test.genotype, test.fitness)
