@@ -13,6 +13,8 @@ crossover_points = 2
 nr_chromosomes = 8
 length_chromosome = 8
 
+chords = ["C", "Am", "F", "G", "Em", "Am", "Dm", "G"]
+
 proportion_stable_unstable = 10 # T, ideal amount of unstable notes is proportion_stable_unstable times as much as amount of stable notes
 a = 1  # a
 punish_unstable = 2  # S, the punishment for the excess of instable notes
@@ -137,7 +139,6 @@ def fitness_note_after_instable_tone(chord, chromosome):
                 if next_tone(chromosome, i) not in [stable_notes[chord][0],
                                                     stable_notes[chord][3]]:
                     fitness -= 10  # Change!!!!!!!!!!!!!!
-    
     return fitness
 
 
@@ -157,8 +158,16 @@ def fitness(individual):
     assert type(individual) is Melody, "invalid input"
 
     individual.fitness = 1000
+    for chromosome_index in range(len(individual.genotype)):
+        individual.fitness += fitness_note_after_instable_tone\
+                                    (chords[chromosome_index],
+                                     individual.genotype[chromosome_index])
+        individual.fitness += fitness_stable_unstable_notes\
+                                    (individual.genotype[chromosome_index],
+                                     chords[chromosome_index])
     return individual.fitness
 
+print(fitness())
 """------------------------ Reproduction -----------------------------------"""
 
 def select_parents(population):
