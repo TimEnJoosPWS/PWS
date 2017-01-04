@@ -13,10 +13,11 @@ crossover_points = 2
 nr_chromosomes = 8
 length_chromosome = 8
 
+proportion_stable_unstable = 10 # T, ideal amount of unstable notes is proportion_stable_unstable times as much as amount of stable notes
 a = 1  # a
-S = 2  # S
-P = -2  # p
-bonus_T_zero = 15
+punish_unstable = 2  # S, the punishment for the excess of instable notes
+punish_stable = -2  # p, the punishment for the excess of stable notes
+bonus_T_zero = 15 # the bonus when the proportion between stable and unstables notes is ideal
 
 R = 2  # R
 q = 2  # q
@@ -89,12 +90,12 @@ def fitness_stable_unstable_notes(chromosome, chord):
         elif i in instable_notes[chord]:
             unstable += 1
     
-    T = stable - a * unstable
+    T = stable - proportion_stable_unstable * unstable
     
     if T > 0:
-        fitness -= S * T
+        fitness -= punish_stable * T
     elif T < 0:
-        fitness -= P * S * T
+        fitness -= punish_unstable * T
     else:
         fitness += bonus_T_zero
     return fitness
