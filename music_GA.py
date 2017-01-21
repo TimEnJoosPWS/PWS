@@ -18,45 +18,40 @@ chords = ["C", "Am", "F", "G", "Em", "Am", "Dm", "G"]
 
 proportion_stable_unstable = 1 # T, ideal amount of unstable notes is proportion_stable_unstable times as much as amount of stable notes
 a = 1  # a
-punish_unstable = -2  # S, the punishment for the excess of instable notes
-punish_stable = 2  # p, the punishment for the excess of stable notes
+punishment_unstable = -2  # S, the punishment for the excess of instable notes
+punishment_stable = 2  # p, the punishment for the excess of stable notes
 bonus_T_zero = 15 # the bonus when the proportion between stable and unstables notes is ideal
 
 punishment_rest = 4
+punishment_invalid_succession = 10
 
-R = 2  # R
-q = 2  # q
-
-b = 2
-Q = 2
-V = -2
-
-V = 3  # V
-W = 2  # W
-straf_septime = 5 # X
 
 
 """---------------------- defining representation --------------------------"""
 note_representation = {
                        "0": "-",  # rust
-                       "1": "C",
-                       "2": "D",
-                       "3": "E",
-                       "4": "F",
-                       "5": "G",
-                       "6": "A",
-                       "7": "B",
-                       "8": "C",
-                       "9": "D",
-                       "A": "E",
-                       "B": "F",
-                       "C": "G",
-                       "D": "A",
-                       "E": "B",
+                       "1": "C3",
+                       "2": "D3",
+                       "3": "E3",
+                       "4": "F3",
+                       "5": "G3",
+                       "6": "A3",
+                       "7": "B3",
+                       "8": "C4",
+                       "9": "D4",
+                       "A": "E4",
+                       "B": "F4",
+                       "C": "G4",
+                       "D": "A4",
+                       "E": "B4",
                        "F": "."  # aanhouden van de noot
                        }
 
 def genotype_to_fenotype(genotype):
+    """
+        Returns the names of the note the gene represents
+        e.g. a 1 in our representation is the note C
+    """
     fenotype = []
     for chromosome in genotype:
         fenotype_of_chromosome = ""
@@ -68,7 +63,10 @@ def genotype_to_fenotype(genotype):
 
 class Melody(object):
     def __init__(self, genotype, generation):
-        #Initiates the Melody, takes a list of chromosomes as input. 
+        """
+            Initiates the Melody
+            Takes a list of chromosomes and the current generation as input. 
+        """
 
         assert type(generation) is int \
                 and type(genotype) is list \
@@ -83,9 +81,12 @@ class Melody(object):
         self.genotype = genotype
         self.generation = generation
         self.fitness = 0
+        self.chromosome_fitnesses = [0]*nr_chromosomes
 
 def create_random_genotype():
-    #creates a random genotype, consisting of chromosomes of type string
+    """
+        creates a random genotype, consisting of chromosomes of type string
+    """
     genotype = []
     for chromosome_nr in range(nr_chromosomes):
         chromosome = ""
@@ -113,6 +114,11 @@ instable_notes = {"Am": ["7", "9", "B", "C", "E", "2", "4", "5"],
                   "Dm": ["3", "5", "7", "8", "A", "C", "E", "1"]}
 
 def fitness_stable_unstable_notes(chromosome, chord):
+    """
+        Input: the current chromosome, the current chord
+        This function returns the decrease in fitness of a piece of music
+        due to an imbalance in stable and unstable notes.
+    """
     assert type(chord) is str and type(chromosome) is str, "invalid input"
     
     stable, unstable, fitness = 0, 0, 0
@@ -126,18 +132,23 @@ def fitness_stable_unstable_notes(chromosome, chord):
     T = stable - proportion_stable_unstable * unstable
     
     if T > 0:
-        fitness -= punish_stable * T
+        fitness -= punishment_stable * T
     elif T < 0:
-        fitness -= punish_unstable * T
+        fitness -= punishment_unstable * T
     else:
         fitness += bonus_T_zero
     return fitness
 
 
 def next_tone(chromosome, current_index):
+    """
+        Returns the next gene in the chromosome, or "error" if there is none.
+        (because there are characters (0 and F) that need to be ignored)
+    """
     assert type(chromosome) is str and len(chromosome) is length_chromosome\
         and current_index < length_chromosome,\
         "invalid chromosome"
+
     i = current_index + 1
     while re.search(r"[F0]", chromosome[i:i+1:]) is not None and i < length_chromosome:
         i += 1
@@ -148,11 +159,13 @@ def next_tone(chromosome, current_index):
 
 
 def fitness_note_length(chromosome):
+    """
+    """
     rest = chromosome.count("F") + chromosome.count("0")
     if rest < 3:
         rest = 8 - rest
     if rest >= 3 and rest < 6:
-        rest = - rest
+        rest = 0
     return - (rest * punishment_rest)
 
 
@@ -167,19 +180,19 @@ def fitness_note_after_instable_tone(chord, chromosome):
                                                     stable_notes[chord][1],
                                                     stable_notes[chord][3],
                                                     stable_notes[chord][4]]:
-                    fitness -= 10  # Change!!!!!!!!!!!!!!
+                    fitness -= punishment_invalid_succession
             elif interval in [1, 5]:  # kwart
                 if next_tone(chromosome, i) not in [stable_notes[chord][1],
                                                     stable_notes[chord][4]]:
-                     fitness -= 10  # Change!!!!!!!!!!!!!!
+                     fitness -= punishment_invalid_succession
             elif interval in [2, 6]:  # sext
                 if next_tone(chromosome, i) not in [stable_notes[chord][2],
                                                     stable_notes[chord][5]]:
-                    fitness -= 10  # Change!!!!!!!!!!!!!!
+                    fitness -= punishment_invalid_succession
             elif interval in [3, 7]:  # septiem
                 if next_tone(chromosome, i) not in [stable_notes[chord][0],
                                                     stable_notes[chord][3]]:
-                    fitness -= 10  # Change!!!!!!!!!!!!!!
+                    fitness -= punishment_invalid_succession
     return fitness
 
 
@@ -191,13 +204,16 @@ def fitness(individual):
 
     individual.fitness = 1000
     for chromosome_index in range(len(individual.genotype)):
-        individual.fitness += fitness_note_after_instable_tone\
+        chromosome_fitness = 0
+        chromosome_fitness += fitness_note_after_instable_tone\
                                     (chords[chromosome_index],
                                      individual.genotype[chromosome_index])
-        individual.fitness += fitness_stable_unstable_notes\
+        chromosome_fitness += fitness_stable_unstable_notes\
                                     (individual.genotype[chromosome_index],
                                      chords[chromosome_index])
-        individual.fitness += fitness_note_length(individual.genotype[chromosome_index])
+        chromosome_fitness += fitness_note_length(individual.genotype[chromosome_index])
+        individual.fitness += chromosome_fitness
+        individual.chromosome_fitnesses[chromosome_index] = chromosome_fitness
         
     return individual.fitness
 
@@ -213,7 +229,8 @@ def select_parents(population):
      This function takes a group of number_of_candidate_solutions
      random individuals and selects the two best candidates.
     """
-    assert type(population) is list and len(population) is population_size \
+    
+    assert type(population) is list and len(population) == population_size\
         and all([type(n) is Melody for n in population]), \
         "Invalid population"
 
@@ -229,7 +246,7 @@ def crossover(parents, generation):
         and constructs a new genotype.
     """
 
-    assert len(parents) is 2 and all([type(n) is Melody for n in parents]),\
+    assert len(parents) == 2 and all([type(n) is Melody for n in parents]),\
         "invalid parents"
 
     index_crossover_points = [randint(1, length_chromosome*nr_chromosomes)
@@ -293,6 +310,7 @@ def elite(population):
 
 population = [Melody(create_random_genotype(), 0) for i in range(population_size)]
 for generation in range(1, number_of_generations):
+
     new_population = []
     new_population.extend(elite(population))
     
@@ -305,5 +323,5 @@ for generation in range(1, number_of_generations):
     population = new_population
 
 fitnesses = [individual.fitness for individual in population]
-test = population[0]
-print(genotype_to_fenotype(test.genotype), test.genotype, test.fitness)
+
+print([genotype_to_fenotype(individual.genotype) for individual in population[0:5]])
