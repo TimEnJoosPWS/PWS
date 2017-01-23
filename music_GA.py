@@ -113,7 +113,7 @@ instable_notes = {"Am": ["7", "9", "B", "C", "E", "2", "4", "5"],
                   "Em": ["4", "6", "8", "9", "B", "D", "1", "2"],
                   "Dm": ["3", "5", "7", "8", "A", "C", "E", "1"]}
 
-def fitness_stable_unstable_notes(chromosome, chord):
+def fitness_stable_unstable_notes(chromosome, chord): #domain A
     """
         Input: the current chromosome, the current chord
         This function returns the decrease in fitness of a piece of music
@@ -158,7 +158,7 @@ def next_tone(chromosome, current_index):
         return chromosome[i]
 
 
-def fitness_note_length(chromosome):
+def fitness_note_length(chromosome): #domain C
     """
     """
     rest = chromosome.count("F") + chromosome.count("0")
@@ -169,7 +169,7 @@ def fitness_note_length(chromosome):
     return - (rest * punishment_rest)
 
 
-def fitness_note_after_instable_tone(chord, chromosome):
+def fitness_note_after_instable_tone(chord, chromosome): #domain A
     
     fitness = 0
     for i in range(len(chromosome)):
@@ -196,7 +196,7 @@ def fitness_note_after_instable_tone(chord, chromosome):
     return fitness
 
 
-def fitness(individual):
+def fitness(individual): #domain A, B and C
     """
         Returns the fitness of the given individual.
     """
