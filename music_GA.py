@@ -324,4 +324,4 @@ for generation in range(1, number_of_generations):
 
 fitnesses = [individual.fitness for individual in population]
 
-print([genotype_to_fenotype(individual.genotype) for individual in population[0:5]])
+print(sum(fitnesses)/len(fitnesses), max(fitnesses))
