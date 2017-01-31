@@ -1,0 +1,16 @@
+genotype = 
+genotype = genotype.replace('1','c')
+genotype = genotype.replace('2','d')
+genotype = genotype.replace('3','e')
+genotype = genotype.replace('4','f')
+genotype = genotype.replace('5','g')
+genotype = genotype.replace('6','a')
+genotype = genotype.replace('7','b')
+genotype = genotype.replace('8','c.')
+genotype = genotype.replace('9','d.')
+genotype = genotype.replace('A','e.')
+genotype = genotype.replace('B','f.')
+genotype = genotype.replace('C','g.')
+genotype = genotype.replace('D','a.')
+genotype = genotype.replace('E','b.')
+print genotype
